@@ -21,6 +21,9 @@ const MOVE_INTERVAL = 150; // Adjust this value to change the snake's speed
 
 let paused = false;
 
+let lastTapTime = 0;
+const DOUBLE_TAP_THRESHOLD = 300; // Adjust this value (in milliseconds) to define the maximum time between taps for a double-tap gesture
+
 function randomPosition() {
     return Math.floor(Math.random() * GRID_WIDTH);
 }
@@ -102,7 +105,52 @@ function handleKeyPress(event) {
     }
 }
 
+function handleTouchStart(event) {
+    if (!paused) {
+        const touchX = event.changedTouches[0].clientX;
+        const touchY = event.changedTouches[0].clientY;
+        const canvasRect = canvas.getBoundingClientRect();
+        const canvasX = touchX - canvasRect.left;
+        const canvasY = touchY - canvasRect.top;
+        const snakeHeadX = snake.body[0].x * GRID_SIZE;
+        const snakeHeadY = snake.body[0].y * GRID_SIZE;
+
+        if (Math.abs(canvasX - snakeHeadX) > Math.abs(canvasY - snakeHeadY)) {
+            // Horizontal swipe
+            snake.direction.y = 0;
+            if (canvasX > snakeHeadX) {
+                snake.direction.x = 1;
+            } else {
+                snake.direction.x = -1;
+            }
+        } else {
+            // Vertical swipe
+            snake.direction.x = 0;
+            if (canvasY > snakeHeadY) {
+                snake.direction.y = 1;
+            } else {
+                snake.direction.y = -1;
+            }
+        }
+    }
+}
+
+function handleTouchEnd(event) {
+    const currentTime = Date.now();
+    if (currentTime - lastTapTime < DOUBLE_TAP_THRESHOLD) {
+        // Double-tap gesture detected, pause or resume the game
+        paused = !paused;
+        lastMoveTime = currentTime;
+        if (!paused) {
+            requestAnimationFrame(gameLoop);
+        }
+    }
+    lastTapTime = currentTime;
+}
+
 document.addEventListener("keydown", handleKeyPress);
+canvas.addEventListener("touchstart", handleTouchStart);
+canvas.addEventListener("touchend", handleTouchEnd);
 
 function gameLoop() {
     if (!paused) {
